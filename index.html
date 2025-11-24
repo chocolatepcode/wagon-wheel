@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wagon Wheel Effect Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Helicopter Blade Illusion<br><small>(Wagon-Wheel / Stroboscopic Effect)</small></h1>
+        <p>
+            Real blade speed: <strong><span id="realSpeed">300</span> RPM</strong> &nbsp;|&nbsp;
+            Apparent motion: <strong><span id="sampledSpeed">0.0</span>° per frame</strong>
+        </p>
+        
+        <canvas id="canvas" width="500" height="500"></canvas>
+        
+        <div class="controls">
+            <label>
+                Real Blade Speed (RPM)
+                <input type="range" id="bladeSpeed" min="60" max="900" step="1" value="300">
+            </label>
+            <label>
+                Camera Frame Rate (FPS)
+                <input type="range" id="frameRate" min="10" max="120" step="1" value="30">
+            </label>
+            <button id="playBtn">Start Animation</button>
+        </div>
+        
+        <p class="info">
+            When the blade completes an integer number of rotations per frame → blades appear frozen.<br>
+            Slight mismatch → slow forward or backward motion.
+        </p>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
