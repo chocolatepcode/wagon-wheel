@@ -1,3 +1,5 @@
+// === script.js – FIXED VERSION WITH TRUE STROBOSCOPIC SAMPLING ===
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const bladeSpeedSlider = document.getElementById('bladeSpeed');
@@ -12,9 +14,9 @@ const bladeLength = 180;
 const numBlades = 4;
 
 let animationId = null;
-let startTime = null;
+let lastFrameTime = null;
 let isRunning = false;
-let currentAngle = 0;
+let trueAngle = 0;  // continuous real angle
 
 function rpmToRadPerSec(rpm) {
     return rpm * 2 * Math.PI / 60;
@@ -38,7 +40,7 @@ function drawBlades(angle) {
         const y = Math.sin(angle + offset) * bladeLength;
         
         ctx.strokeStyle = '#222';
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 12;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -58,75 +60,91 @@ function updateDisplay() {
     const apparentDeg = ((degPerFrame % 360) + 360) % 360;
     const effective = apparentDeg > 180 ? apparentDeg - 360 : apparentDeg;
     
-    sampledSpeedSpan.textContent = effective.toFixed(1);
-    sampledSpeedSpan.style.color = Math.abs(effective) < 5 ? '#d00' : '#000';
+    sampledSpeedSpan.textContent = effective.toFixed(1) + '°';
+    sampledSpeedSpan.style.color = Math.abs(effective) < 1 ? '#d00' : 
+                                   Math.abs(effective) < 10 ? '#d80' : '#000';
 }
 
-// ←←← THIS IS THE IMPORTANT FIX
-function restartTimingIfRunning() {
-    if (isRunning && startTime !== null) {
-        const rpm = Number(bladeSpeedSlider.value);
-        // Keep the current visible angle but restart the clock so the new speed takes effect instantly
-        const elapsedSec = (performance.now() - startTime) / 1000;
-        currentAngle = rpmToRadPerSec(rpm) * elapsedSec;
-        startTime = performance.now();  // reset clock
-    }
-}
+let sampledAngle = 0;  // This is what the "camera" sees
 
 function animate(now) {
-    if (!startTime) startTime = now;
-    const elapsedSec = (now - startTime) / 1000;
-    const rpm = Number(bladeSpeedSlider.value);
-    currentAngle = rpmToRadPerSec(rpm) * elapsedSec;
+    if (!lastFrameTime) lastFrameTime = now;
     
-    drawBlades(currentAngle);
-    updateDisplay();
+    const rpm = Number(bladeSpeedSlider.value);
+    const fps = Number(frameRateSlider.value);
+    const frameIntervalMs = 1000 / fps;
+    
+    const elapsedTotal = now - lastFrameTime;
+    
+    // Update true continuous rotation
+    trueAngle += rpmToRadPerSec(rpm) * (elapsedTotal / 1000);
+    
+    // But only sample (draw) at exact camera frame rate
+    if (elapsedTotal >= frameIntervalMs) {
+        // Advance sampled angle by exactly one frame's worth of real rotation
+        sampledAngle += rpmToRadPerSec(rpm) * (frameIntervalMs / 1000);
+        
+        // This creates perfect aliasing!
+        drawBlades(sampledAngle);
+        updateDisplay();
+        
+        lastFrameTime = now;
+    }
+    
     animationId = requestAnimationFrame(animate);
 }
 
+// Start/Stop
 playBtn.addEventListener('click', () => {
     if (isRunning) {
         cancelAnimationFrame(animationId);
         animationId = null;
-        startTime = null;
-        playBtn.textContent = 'Start Animation';
+        lastFrameTime = null;
         isRunning = false;
+        playBtn.textContent = 'Start Animation';
     } else {
-        startTime = performance.now();
+        lastFrameTime = performance.now();
         animationId = requestAnimationFrame(animate);
         playBtn.textContent = 'Stop Animation';
         isRunning = true;
     }
 });
 
+// Sliders
 bladeSpeedSlider.addEventListener('input', () => {
     updateDisplay();
-    restartTimingIfRunning();
+    if (isRunning) {
+        // Reset timing on change for instant response
+        lastFrameTime = performance.now();
+    }
 });
-
 frameRateSlider.addEventListener('input', updateDisplay);
 
-// Preset buttons – now instantly correct even while running
+// Presets - NOW WITH CORRECT VALUES FOR TRUE ILLUSIONS
 document.querySelectorAll('.presets button').forEach(btn => {
     btn.addEventListener('click', () => {
-        bladeSpeedSlider.value = btn.dataset.rpm;
-        frameRateSlider.value = btn.dataset.fps;
+        const rpm = btn.dataset.rpm;
+        const fps = btn.dataset.fps;
+        bladeSpeedSlider.value = rpm;
+        frameRateSlider.value = fps;
         updateDisplay();
-        restartTimingIfRunning();
-        if (!isRunning) drawBlades(currentAngle);
+        sampledAngle = 0;  // reset for clean effect
+        if (isRunning) lastFrameTime = performance.now();
+        if (!isRunning) drawBlades(0);
     });
 });
 
-// URL parameters (?rpm=450&fps=30)
+// URL params
 function applyUrlParams() {
     const params = new URLSearchParams(window.location.search);
     const rpm = parseInt(params.get('rpm'));
     const fps = parseInt(params.get('fps'));
-    if (!isNaN(rpm) && rpm >= 60 && rpm <= 900) bladeSpeedSlider.value = rpm;
-    if (!isNaN(fps) && fps >= 10 && fps <= 120) frameRateSlider.value = fps;
+    if (rpm >= 60 && rpm <= 2000) bladeSpeedSlider.value = rpm;
+    if (fps >= 10 && fps <= 120) frameRateSlider.value = fps;
     updateDisplay();
-    restartTimingIfRunning();
-    drawBlades(currentAngle);
+    sampledAngle = 0;
+    if (isRunning) lastFrameTime = performance.now();
+    drawBlades(0);
 }
 window.addEventListener('load', applyUrlParams);
 
