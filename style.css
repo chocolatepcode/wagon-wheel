@@ -27,9 +27,20 @@ canvas {
     margin: 20px 0;
 }
 
-.controls {
-    margin: 20px 0;
+.controls { margin: 20px 0; }
+
+.presets { margin: 20px 0; }
+.presets button {
+    margin: 5px;
+    padding: 10px 14px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95em;
 }
+.presets button:hover { background: #000; }
 
 label {
     display: block;
@@ -42,17 +53,17 @@ input[type="range"] {
     margin-top: 8px;
 }
 
-button {
+button#playBtn {
     margin-top: 20px;
-    padding: 12px 24px;
-    font-size: 1.1em;
+    padding: 12px 28px;
+    font-size: 1.2em;
     background: #2E8B57;
     color: white;
     border: none;
     border-radius: 8px;
     cursor: pointer;
 }
-button:hover { background: #236B44; }
+button#playBtn:hover { background: #236B44; }
 
 .info {
     margin-top: 25px;
